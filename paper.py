@@ -155,7 +155,7 @@ class ArxivPaper:
             if match:
                 conclusion = match.group(0)
         llm = get_llm()
-        prompt = """Given the title, abstract, introduction and the conclusion (if any) of a paper in latex format, generate a one-sentence TLDR summary in __LANG__:
+        prompt = """根据以下以latex格式给出的文章的标题，摘要，引言和结论（如果有的话），给出这篇文章的一个简要的摘要，仅输出摘要内容，不要使用Markdown格式，不要加上标题和小标题。
         
         \\title{__TITLE__}
         \\begin{abstract}__ABSTRACT__\\end{abstract}
@@ -174,13 +174,23 @@ class ArxivPaper:
         prompt_tokens = prompt_tokens[:4000]  # truncate to 4000 tokens
         prompt = enc.decode(prompt_tokens)
         
+        tldr_ori = llm.generate(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "你是一个擅长总结论文内容的阅读助手，你需要阅读科学文献，给出该文献主要内容的总结。",
+                },
+                {"role": "user", "content": prompt},
+            ]
+        )
+        # Translate TLDR into Chinese
         tldr = llm.generate(
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an assistant who perfectly summarizes scientific paper, and gives the core idea of the paper to the user.",
+                    "content": "你是一个专精于学术文本翻译的翻译专家，你需要阅读学术文本，并将其翻译为指定的语言。",
                 },
-                {"role": "user", "content": prompt},
+                {"role": "user", "content": f"请将这一段文本翻译为中文：\n{tldr_ori}"},
             ]
         )
         return tldr
